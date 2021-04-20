@@ -43,6 +43,11 @@ export const Map: FC = () => {
     })
 
     map.on('load', () => {
+      map.addSource('ndvi-source', {
+        type: 'raster',
+        tiles: [sources.ndvi],
+      })
+
       setMapLoaded(true)
     })
 
@@ -56,21 +61,19 @@ export const Map: FC = () => {
 
     if (!map || !mapLoaded) return
 
-    map.addSource('ndvi-source', {
-      type: 'raster',
-      tiles: [sources.ndvi],
-    })
-
-    map.addLayer({
-      id: 'ndvi-layer',
-      type: 'raster',
-      source: 'ndvi-source',
-      paint: {},
-    })
-
+    if (basemap === 'ndvi') {
+      map.addLayer({
+        id: 'ndvi-layer',
+        type: 'raster',
+        source: 'ndvi-source',
+        paint: {},
+      })
+    } else {
+      if (map.getLayer('ndvi-layer')) map.removeLayer('ndvi-layer')
+    }
     // TODO: cleanup?
     // return () => map.removeSource('ndvi-source')
-  }, [mapLoaded])
+  }, [mapLoaded, basemap])
 
   return (
     <div className="map-wrap">
