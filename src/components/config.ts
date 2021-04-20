@@ -8,5 +8,5 @@ export const defaults = {
 
 export const sources = {
   ndvi: 'https://tiles.earthoptics.com/ndvi/{z}/{x}/{y}.png',
-  data: '/default/mockGeoJSONAPI' // CRED: stackoverflow.com/a/51128913/1048518
+  data: 'https://gxlu1hg02b.execute-api.us-east-1.amazonaws.com/default/mockGeoJSONAPI'
 }
