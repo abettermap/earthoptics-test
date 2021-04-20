@@ -5,13 +5,11 @@ import { sources } from './config'
 import { UseBaseMap, UseDataLayer, UseMockQuery } from './types'
 
 // Fetch the mock API data, then flip the lat/lon so MB can use it.
-export const useMockQuery: UseMockQuery = (showData) => {
+export const useMockQuery: UseMockQuery = () => {
   const { isLoading, error, data } = useQuery<GeoJSON.MultiPoint>('data', () =>
     fetch(sources.data).then(res =>
       res.json()
-    ), {
-    enabled: showData
-  }
+    )
   )
 
   if (isLoading || error || !data) return null
@@ -22,12 +20,27 @@ export const useMockQuery: UseMockQuery = (showData) => {
   }
 }
 
-export const useDataLayer: UseDataLayer = (showData, mapLoaded, map) => {
-  useEffect(() => {
-    if (!map || !mapLoaded) return
+export const useDataLayer: UseDataLayer = (showData, mapLoaded, mapRef) => {
+  const featGeometry = useMockQuery()
 
-    if (showData) {
-      map?.addLayer({
+  useEffect(() => {
+    const map = mapRef.current
+
+    if (!map || !map.loaded()) return
+
+    if (featGeometry && !map.getLayer('data-layer') && !map.getSource('data-source')) {
+      map.addSource('data-source', {
+        type: 'geojson',
+        // NOTE: I was expecting full valid GeoJSON from the mock API, but it is
+        // only the geometry of a single feature so I coded it based on that.
+        data: {
+          type: 'Feature',
+          geometry: featGeometry,
+          properties: {},
+        }
+      })
+
+      map.addLayer({
         id: 'data-layer',
         type: 'circle',
         source: 'data-source',
@@ -37,28 +50,57 @@ export const useDataLayer: UseDataLayer = (showData, mapLoaded, map) => {
           'circle-color': 'red',
           'circle-stroke-color': 'white',
         },
+        layout: {
+          visibility: 'none'
+        }
       })
     } else {
-      if (map?.getLayer('data-layer')) map?.removeLayer('data-layer')
+      const visibility = showData ? 'visible' : 'none'
+
+      map.setLayoutProperty('data-layer', 'visibility', visibility)
     }
-    // return () => map?.removeLayer('layer-id') // TODO: cleanup?
-  }, [mapLoaded, showData])
+
+  }, [showData, featGeometry])
+
+  useEffect(() => {
+    const map = mapRef.current
+
+    if (!map || !mapLoaded || !map.getLayer('data-layer')) return
+
+    const visibility = showData ? 'visible' : 'none'
+
+    map.setLayoutProperty('data-layer', 'visibility', visibility)
+  }, [showData, featGeometry, mapLoaded])
 }
 
-export const useBaseMap: UseBaseMap = (basemap, mapLoaded, map) => {
+export const useBaseMap: UseBaseMap = (basemap, mapLoaded, mapRef) => {
   useEffect(() => {
-    if (!map || !mapLoaded) return
+    const map = mapRef.current
 
-    if (basemap === 'ndvi') {
-      map?.addLayer({
-        id: 'ndvi-layer',
-        type: 'raster',
-        source: 'ndvi-source',
-        paint: {},
-      })
-    } else {
-      if (map?.getLayer('ndvi-layer')) map?.removeLayer('ndvi-layer')
-    }
-    // return () => map?.removeLayer('layer-id') // TODO: cleanup?
-  }, [mapLoaded, basemap, map])
+    if (!map || !mapLoaded || map.getLayer('ndvi-layer')) return
+
+    // TODO: TSify sources, layer IDs, etc.
+    map.addSource('ndvi-source', {
+      type: 'raster',
+      tiles: [sources.ndvi],
+    })
+
+    map.addLayer({
+      id: 'ndvi-layer',
+      type: 'raster',
+      source: 'ndvi-source',
+      paint: {},
+      layout: { visibility: 'none' },
+    })
+  }, [mapLoaded, basemap, mapRef.current])
+
+  useEffect(() => {
+    const map = mapRef.current
+
+    if (!map || !map.loaded() || !map.getLayer('data-layer')) return
+
+    const visibility = basemap === 'ndvi' ? 'visible' : 'none'
+
+    map.setLayoutProperty('ndvi-layer', 'visibility', visibility)
+  }, [basemap, mapRef.current])
 }

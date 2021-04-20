@@ -2,10 +2,11 @@ import React, { FC, useRef, useEffect, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
-import { defaults, sources, MAPBOX_TOKEN } from './config'
+import { defaults, MAPBOX_TOKEN } from './config'
 import { Basemap } from './types'
 import { LayerSwitcher } from './LayerSwitcher'
-import { useBaseMap, useDataLayer, useMockQuery } from './hooks'
+import { ZoomSlider } from './ZoomSlider'
+import { useBaseMap, useDataLayer } from './hooks'
 
 mapboxgl.accessToken = MAPBOX_TOKEN
 
@@ -21,10 +22,9 @@ export const Map: FC = () => {
   const [showDataLayer, setShowDataLayer] = useState<boolean>(false)
   const [mapLoaded, setMapLoaded] = useState<boolean>(false)
   const [basemap, setBasemap] = useState<Basemap>('sat')
-  const featGeometry = useMockQuery(showDataLayer)
 
-  useBaseMap(basemap, mapLoaded, mapRef.current)
-  useDataLayer(showDataLayer, mapLoaded, mapRef.current)
+  useBaseMap(basemap, mapLoaded, mapRef)
+  useDataLayer(showDataLayer, mapLoaded, mapRef)
 
   useEffect(() => {
     if (!mapContainer.current) return
@@ -35,8 +35,6 @@ export const Map: FC = () => {
       center: [lng, lat],
       zoom: zoom,
     })
-
-    mapRef.current = map // easy access for the hooks, etc.
 
     map.on('move', () => {
       // TODO: why is `getCenter` considered a string??
@@ -51,24 +49,7 @@ export const Map: FC = () => {
     })
 
     map.on('load', () => {
-      // TODO: TSify sources, layer IDs, etc.
-      map.addSource('data-source', {
-        type: 'geojson',
-        // NOTE: I was expecting full valid GeoJSON from the mock API, but it is
-        // only the geometry of a single feature so I coded it based on that.
-        data: featGeometry
-          ? {
-              type: 'Feature',
-              geometry: featGeometry,
-              properties: {},
-            }
-          : undefined,
-      })
-
-      map.addSource('ndvi-source', {
-        type: 'raster',
-        tiles: [sources.ndvi],
-      })
+      mapRef.current = map // easy access for the hooks, etc.
 
       setMapLoaded(true) // can't do a whole lot until it's loaded
     })
@@ -84,6 +65,7 @@ export const Map: FC = () => {
         basemap={basemap}
         setBasemap={setBasemap}
       />
+      <ZoomSlider zoom={zoom} mapRef={mapRef}></ZoomSlider>
       <div className="map-container" ref={mapContainer} />
     </div>
   )
