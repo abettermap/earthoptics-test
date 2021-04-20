@@ -1,5 +1,7 @@
 import React, { FC } from 'react'
+
 import './App.css'
+import { Map } from './components/Map'
 
 const App: FC = () => {
   return (
@@ -8,6 +10,7 @@ const App: FC = () => {
         <h1>Front-end Developer Technical Exercise</h1>
         <p>EarthOptics</p>
       </header>
+      <Map />
     </div>
   )
 }
