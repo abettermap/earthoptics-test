@@ -20,6 +20,7 @@ export const LayerSwitcher: FC<LayerSwitcherProps> = (props) => {
   return (
     <MapCtrlPanel position="bottom-right">
       <div className="layer-switcher">
+        <h3 style={{ textAlign: 'left', marginTop: 0 }}>Map layer options</h3>
         <input
           type="radio"
           name="layer-switcher"

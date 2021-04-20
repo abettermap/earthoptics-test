@@ -5,6 +5,8 @@ import { ZoomSliderProps } from './types'
 
 export const ZoomSlider: FC<ZoomSliderProps> = (props) => {
   const { zoom, mapRef } = props
+  const MIN = 10
+  const MAX = 16
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const map = mapRef.current
@@ -15,14 +17,22 @@ export const ZoomSlider: FC<ZoomSliderProps> = (props) => {
   }
 
   return (
-    <MapCtrlPanel position="top-right">
+    <MapCtrlPanel position="top-right" className="zoom-slider">
       <input
         type="range"
         value={zoom}
-        min={10}
-        max={16}
+        min={MIN}
+        max={MAX}
         onChange={handleChange}
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        orient="vertical"
       />
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <span>{MIN}</span>
+        <span>{MAX}</span>
+      </div>
+      <div style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>Zoom level</div>
     </MapCtrlPanel>
   )
 }

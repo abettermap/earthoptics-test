@@ -59,7 +59,6 @@ export const useDataLayer: UseDataLayer = (showData, mapLoaded, mapRef) => {
 
       map.setLayoutProperty('data-layer', 'visibility', visibility)
     }
-
   }, [showData, featGeometry])
 
   useEffect(() => {
@@ -97,7 +96,7 @@ export const useBaseMap: UseBaseMap = (basemap, mapLoaded, mapRef) => {
   useEffect(() => {
     const map = mapRef.current
 
-    if (!map || !map.loaded() || !map.getLayer('data-layer')) return
+    if (!map || !mapLoaded || !map.getLayer('ndvi-layer')) return
 
     const visibility = basemap === 'ndvi' ? 'visible' : 'none'
 

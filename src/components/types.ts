@@ -19,6 +19,7 @@ export type CtrlPanelPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bott
 
 export type MapCtrlPanelProps = {
   position: CtrlPanelPosition
+  className?: string
 }
 
 export type GetCtrlPanelStyle = (position: CtrlPanelPosition) => CSSProperties
