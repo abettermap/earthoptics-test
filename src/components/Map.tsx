@@ -2,24 +2,30 @@ import React, { FC, useRef, useEffect, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
-export const MAPBOX_TOKEN = process.env.REACT_APP_MB_TOKEN as string
+import { defaults, sources, MAPBOX_TOKEN } from './config'
+import { Basemap } from './types'
+import { LayerSwitcher } from './LayerSwitcher'
 
 mapboxgl.accessToken = MAPBOX_TOKEN
 
 // CRED: https://docs.mapbox.com/help/tutorials/use-mapbox-gl-js-with-react/
 export const Map: FC = () => {
   const mapContainer: React.RefObject<HTMLDivElement> = useRef(null)
+  const mapRef = React.useRef<mapboxgl.Map | null>(null)
 
-  const [lng, setLng] = useState<number>(-92.65880554936408)
-  const [lat, setLat] = useState<number>(42.704868874031554)
-  const [zoom, setZoom] = useState<number>(13)
+  const [lng, setLng] = useState<number>(defaults.lng)
+  const [lat, setLat] = useState<number>(defaults.lat)
+  const [zoom, setZoom] = useState<number>(defaults.zoom)
+  const [showData, setShowData] = useState<boolean>(true)
+  const [mapLoaded, setMapLoaded] = useState<boolean>(false)
+  const [basemap, setBasemap] = useState<Basemap>('sat')
 
   useEffect(() => {
     if (!mapContainer.current) return
 
     const map = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v11',
+      style: 'mapbox://styles/mapbox/satellite-v9',
       center: [lng, lat],
       zoom: zoom,
     })
@@ -36,11 +42,44 @@ export const Map: FC = () => {
       /* eslint-enable @typescript-eslint/ban-ts-comment */
     })
 
+    map.on('load', () => {
+      setMapLoaded(true)
+    })
+
+    mapRef.current = map
+
     return () => map.remove()
   }, [])
 
+  useEffect(() => {
+    const map = mapRef?.current
+
+    if (!map || !mapLoaded) return
+
+    map.addSource('ndvi-source', {
+      type: 'raster',
+      tiles: [sources.ndvi],
+    })
+
+    map.addLayer({
+      id: 'ndvi-layer',
+      type: 'raster',
+      source: 'ndvi-source',
+      paint: {},
+    })
+
+    // TODO: cleanup?
+    // return () => map.removeSource('ndvi-source')
+  }, [mapLoaded])
+
   return (
     <div className="map-wrap">
+      <LayerSwitcher
+        showData={showData}
+        setShowData={setShowData}
+        basemap={basemap}
+        setBasemap={setBasemap}
+      />
       <div className="map-container" ref={mapContainer} />
     </div>
   )
