@@ -5,6 +5,7 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 import { defaults, sources, MAPBOX_TOKEN } from './config'
 import { Basemap } from './types'
 import { LayerSwitcher } from './LayerSwitcher'
+import { useBaseMap, useDataLayer, useMockQuery } from './hooks'
 
 mapboxgl.accessToken = MAPBOX_TOKEN
 
@@ -13,12 +14,17 @@ export const Map: FC = () => {
   const mapContainer: React.RefObject<HTMLDivElement> = useRef(null)
   const mapRef = React.useRef<mapboxgl.Map | null>(null)
 
+  // NOTE: would normally use `useReducer` for these, but in interest of time...
   const [lng, setLng] = useState<number>(defaults.lng)
   const [lat, setLat] = useState<number>(defaults.lat)
   const [zoom, setZoom] = useState<number>(defaults.zoom)
-  const [showData, setShowData] = useState<boolean>(true)
+  const [showDataLayer, setShowDataLayer] = useState<boolean>(false)
   const [mapLoaded, setMapLoaded] = useState<boolean>(false)
   const [basemap, setBasemap] = useState<Basemap>('sat')
+  const featGeometry = useMockQuery(showDataLayer)
+
+  useBaseMap(basemap, mapLoaded, mapRef.current)
+  useDataLayer(showDataLayer, mapLoaded, mapRef.current)
 
   useEffect(() => {
     if (!mapContainer.current) return
@@ -29,6 +35,8 @@ export const Map: FC = () => {
       center: [lng, lat],
       zoom: zoom,
     })
+
+    mapRef.current = map // easy access for the hooks, etc.
 
     map.on('move', () => {
       // TODO: why is `getCenter` considered a string??
@@ -43,43 +51,36 @@ export const Map: FC = () => {
     })
 
     map.on('load', () => {
+      // TODO: TSify sources, layer IDs, etc.
+      map.addSource('data-source', {
+        type: 'geojson',
+        // NOTE: I was expecting full valid GeoJSON from the mock API, but it is
+        // only the geometry of a single feature so I coded it based on that.
+        data: featGeometry
+          ? {
+              type: 'Feature',
+              geometry: featGeometry,
+              properties: {},
+            }
+          : undefined,
+      })
+
       map.addSource('ndvi-source', {
         type: 'raster',
         tiles: [sources.ndvi],
       })
 
-      setMapLoaded(true)
+      setMapLoaded(true) // can't do a whole lot until it's loaded
     })
 
-    mapRef.current = map
-
-    return () => map.remove()
+    return () => map.remove() // cleanup
   }, [])
-
-  useEffect(() => {
-    const map = mapRef?.current
-
-    if (!map || !mapLoaded) return
-
-    if (basemap === 'ndvi') {
-      map.addLayer({
-        id: 'ndvi-layer',
-        type: 'raster',
-        source: 'ndvi-source',
-        paint: {},
-      })
-    } else {
-      if (map.getLayer('ndvi-layer')) map.removeLayer('ndvi-layer')
-    }
-    // TODO: cleanup?
-    // return () => map.removeSource('ndvi-source')
-  }, [mapLoaded, basemap])
 
   return (
     <div className="map-wrap">
       <LayerSwitcher
-        showData={showData}
-        setShowData={setShowData}
+        showData={showDataLayer}
+        setShowData={setShowDataLayer}
         basemap={basemap}
         setBasemap={setBasemap}
       />
